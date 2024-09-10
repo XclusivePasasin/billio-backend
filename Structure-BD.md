@@ -1,19 +1,12 @@
 // Table Users
 {
-    "_id": ObjectId("user123"),
-    "name": "John Doe",
-    "email": "john.doe@example.com",
-    "password_hash": "hashed_password",
-    "role": "admin", 
-    "teams": [
-      {
-        "team_id": ObjectId("team123"),
-        "role": "team_leader"
-      }
-    ],
-    "created_at": ISODate("2024-09-09T12:00:00Z"),
-    "last_login": ISODate("2024-09-10T08:30:00Z")
-  }
+  "_id": ObjectId("user123"),
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "password_hash": "hashed_password",
+  "created_at": ISODate("2024-09-09T12:00:00Z"),
+  "last_login": ISODate("2024-09-10T08:30:00Z")
+}
   
 // Table Projects
 {
