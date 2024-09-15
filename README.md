@@ -1,2 +1,2 @@
 # taskify-backend
-Taskify es una plataforma de gestión de actividades que centraliza todas las tareas de un equipo. Facilita la asignación de tareas, el seguimiento de fechas límite, la colaboración en tiempo real y la organización de proyectos, desde los más simples hasta los más complejos, de forma intuitiva y eficiente.
+Billio: Sistema automatizado para gestionar, organizar y procesar facturas electrónicas recibidas por correo. Almacena, extrae información clave, y facilita la visualización y análisis financiero con una interfaz amigable.
