@@ -1,3 +1,5 @@
 Flask
-pymongo
+Flask-SQLAlchemy
+pymysql
 bcrypt
+python-dotenv
