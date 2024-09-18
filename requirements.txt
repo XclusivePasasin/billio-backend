@@ -1,5 +1,6 @@
 Flask
 Flask-SQLAlchemy
+Flask-CORS
 pymysql
 bcrypt
 python-dotenv

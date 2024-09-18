@@ -5,6 +5,27 @@ import bcrypt
 from datetime import datetime
 
 users_bp = Blueprint('users', __name__)
+# Ruta para obtener a un usuario por su nombre de usaurio o correo
+@users_bp.route('/get_user', methods=['POST'])
+def get_user():
+    data = request.json
+    user_email = data.get('correo')
+    user_name = data.get('usuario')
+    
+    # Buscar el usuario por correo o nombre de usuario
+    user = User.query.filter((User.correo == user_email) | (User.usuario == user_name)).first()
+
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    # Devolver los datos del usuario
+    return jsonify({
+        "id": user.id,
+        "nombre": user.nombre,
+        "apellido": user.apellido,
+        "correo": user.correo,
+        "usuario": user.usuario
+    }), 200
 
 @users_bp.route('/create_user', methods=['POST'])
 def create_user():
