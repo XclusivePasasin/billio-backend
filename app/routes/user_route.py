@@ -7,25 +7,60 @@ from datetime import datetime
 users_bp = Blueprint('users', __name__)
 # Ruta para obtener a un usuario por su nombre de usaurio o correo
 @users_bp.route('/get_user', methods=['POST'])
-def get_user():
-    data = request.json
-    user_email = data.get('correo')
-    user_name = data.get('usuario')
-    
-    # Buscar el usuario por correo o nombre de usuario
-    user = User.query.filter((User.correo == user_email) | (User.usuario == user_name)).first()
+def get_users():
+    try:
+        # Obtener los parámetros del JSON enviado en la solicitud
+        data = request.json or {}  # Si no se envía JSON, asignar un diccionario vacío
+        user_email = data.get('correo')
+        user_name = data.get('usuario')
+        all_users = data.get('allUsers', False)  # Obtener el valor de allUsers (por defecto es False)
 
-    if not user:
-        return jsonify({"error": "Usuario no encontrado"}), 404
+        # Si allUsers es verdadero, devolver todos los usuarios
+        if all_users:
+            users = User.query.all()
 
-    # Devolver los datos del usuario
-    return jsonify({
-        "id": user.id,
-        "nombre": user.nombre,
-        "apellido": user.apellido,
-        "correo": user.correo,
-        "usuario": user.usuario
-    }), 200
+            if not users:
+                return jsonify({"message": "No se encontraron usuarios"}), 404
+
+            # Crear una lista con los datos de todos los usuarios
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "nombre": user.nombre,
+                    "apellido": user.apellido,
+                    "correo": user.correo,
+                    "usuario": user.usuario,
+                    "tipo": user.tipo,
+                    "estado": user.estado
+                })
+
+            # Devolver la lista de usuarios
+            return jsonify(users_list), 200
+
+        # Si se proporciona correo o nombre de usuario, buscar ese usuario en específico
+        elif user_email or user_name:
+            user = User.query.filter((User.correo == user_email) | (User.usuario == user_name)).first()
+
+            if not user:
+                return jsonify({"error": "Usuario no encontrado"}), 404
+
+            # Devolver los datos del usuario encontrado
+            return jsonify({
+                "id": user.id,
+                "nombre": user.nombre,
+                "apellido": user.apellido,
+                "correo": user.correo,
+                "usuario": user.usuario,
+                "tipo": user.tipo,
+                "estado": user.estado
+            }), 200
+
+        # Si no se proporciona correo, nombre de usuario o allUsers no es True
+        return jsonify({"message": "No se proporcionaron parámetros válidos"}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/create_user', methods=['POST'])
 def create_user():
