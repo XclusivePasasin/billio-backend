@@ -5,6 +5,58 @@ import bcrypt
 from datetime import datetime
 
 users_bp = Blueprint('users', __name__)
+# Ruta para obtener a un usuario por su nombre de usaurio o correo
+@users_bp.route('/get_user', methods=['POST'])
+def get_users():
+    try:
+        # Consultar todos los usuarios directamente sin necesidad de parámetros
+        users = User.query.all()
+
+        if not users:
+            return jsonify({"message": "No se encontraron usuarios"}), 404
+
+        # Crear una lista con los datos de todos los usuarios
+        users_list = [{
+            "id": user.id,
+            "nombre": user.nombre,
+            "apellido": user.apellido,
+            "correo": user.correo,
+            "usuario": user.usuario,
+            "tipo": user.tipo,
+            "estado": user.estado
+        } for user in users]
+
+        # Devolver la lista de usuarios
+        return jsonify(users_list), 200 
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@users_bp.route('/get_user_login', methods=['POST'])
+def get_user_by_identifier():
+    data = request.json
+    identifier = data.get('correo') or data.get('usuario')  # Asegúrate de obtener el identifier correctamente
+
+    if not identifier:
+        return jsonify({"error": "Se requiere 'correo' o 'usuario' en el cuerpo de la solicitud"}), 400
+
+    try:
+        user = User.query.filter((User.correo == identifier) | (User.usuario == identifier)).first()
+
+        if not user:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        return jsonify({
+            "id": user.id,
+            "nombre": user.nombre,
+            "apellido": user.apellido,
+            "correo": user.correo,
+            "usuario": user.usuario,
+            "tipo": user.tipo,
+            "estado": user.estado
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/create_user', methods=['POST'])
 def create_user():
