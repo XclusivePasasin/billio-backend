@@ -3,6 +3,7 @@ from ..models.user_model import User
 from .. import db
 import bcrypt
 from datetime import datetime
+import re
 
 users_bp = Blueprint('users', __name__)
 # Ruta para obtener a un usuario por su nombre de usaurio o correo
@@ -58,6 +59,11 @@ def get_user_by_identifier():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Regex para validaciones
+email_regex = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+username_regex = re.compile(r'^(?!.*[_.]{2})[a-zA-Z0-9._]{4,30}$')
+password_regex = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$')
+
 @users_bp.route('/create_user', methods=['POST'])
 def create_user():
     data = request.json
@@ -67,6 +73,18 @@ def create_user():
     usuario = data.get('usuario')
     clave = data.get('clave')
     
+    # Validación de nombre
+    if not nombre or not re.match(r'^[a-zA-Z\s-]{2,50}$', nombre):
+        return jsonify({"error": "El nombre debe tener entre 2 y 50 caracteres y solo contener letras."}), 400
+    
+    # Validación de apellido
+    if not apellido or not re.match(r'^[a-zA-Z\s-]{2,50}$', apellido):
+        return jsonify({"error": "El apellido debe tener entre 2 y 50 caracteres y solo contener letras."}), 400
+    
+    # Validación de correo
+    if not correo or not email_regex.match(correo):
+        return jsonify({"error": "El correo debe ser válido."}), 400
+    
     # Verificar si el correo ya existe
     if User.query.filter_by(correo=correo).first():
         return jsonify({"error": "El correo ya está en uso"}), 400
@@ -74,6 +92,10 @@ def create_user():
     # Verificar si el nombre de usuario ya existe
     if User.query.filter_by(usuario=usuario).first():
         return jsonify({"error": "El nombre de usuario ya está en uso"}), 400
+    
+     # Validación de contraseña
+    if not clave or not password_regex.match(clave):
+        return jsonify({"error": "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, minúscula, número y carácter especial."}), 400
 
     # Hashear la contraseña
     password_hash = bcrypt.hashpw(clave.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
