@@ -48,13 +48,16 @@ def get_user_by_identifier():
             return jsonify({"error": "Usuario no encontrado"}), 404
 
         return jsonify({
-            "id": user.id,
-            "nombre": user.nombre,
-            "apellido": user.apellido,
-            "correo": user.correo,
-            "usuario": user.usuario,
-            "tipo": user.tipo,
-            "estado": user.estado
+            "data":[
+                { 
+                    "id": user.id,
+                    "nombre": user.nombre,
+                    "apellido": user.apellido,
+                    "correo": user.correo,
+                    "usuario": user.usuario,
+                    "tipo": user.tipo,
+                    "estado": user.estado}
+            ]
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
