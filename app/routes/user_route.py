@@ -55,7 +55,7 @@ def get_user_by_identifier():
                     "apellido": user.apellido,
                     "correo": user.correo,
                     "usuario": user.usuario,
-                    "tipo": user.tipo,
+                    "clave": user.clave,
                     "estado": user.estado}
             ]
         }), 200
@@ -110,7 +110,7 @@ def create_user():
 
     return jsonify({"message": "Usuario creado exitosamente"}), 201
 
-@users_bp.route('/update_user', methods=['PUT'])
+@users_bp.route('/update_user', methods=['POST'])
 def update_user():
     data = request.json
     user_id = data.get('id')  # Se obtiene el id del usuario
@@ -121,6 +121,30 @@ def update_user():
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
+    # Validar si el correo ya está registrado por otro usuario solo si el correo ha cambiado
+    nuevo_correo = data.get('correo')
+    if nuevo_correo and nuevo_correo != user.correo:
+        correo_existente = User.query.filter(User.correo == nuevo_correo, User.id != user_id).first()
+        if correo_existente:
+            return jsonify({"error": "El correo ya está registrado"}), 400
+
+    # Validar si el nombre de usuario ya está registrado por otro usuario solo si el nombre de usuario ha cambiado
+    nuevo_usuario = data.get('usuario')
+    if nuevo_usuario and nuevo_usuario != user.usuario:
+        usuario_existente = User.query.filter(User.usuario == nuevo_usuario, User.id != user_id).first()
+        if usuario_existente:
+            return jsonify({"error": "El nombre de usuario ya está registrado"}), 400
+
+    # Validar la contraseña solo si se envía una nueva clave
+    nueva_clave = data.get('clave')
+    if nueva_clave:
+        # Validar si la clave cumple con el regex
+        if not password_regex.match(nueva_clave):
+            return jsonify({"error": "La contraseña no cumple con los requisitos de seguridad"}), 400
+        # Si la clave es válida, se realiza el hash y se actualiza
+        password_hash = bcrypt.hashpw(nueva_clave.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user.clave = password_hash
+
     # Actualizar los campos (excepto id y tipo)
     if data.get('nombre'):
         user.nombre = data['nombre']
@@ -130,9 +154,6 @@ def update_user():
         user.correo = data['correo']
     if data.get('usuario'):
         user.usuario = data['usuario']
-    if data.get('clave'):
-        password_hash = bcrypt.hashpw(data['clave'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        user.clave = password_hash
     if data.get('estado'):
         user.estado = data['estado']
 
@@ -140,22 +161,21 @@ def update_user():
 
     return jsonify({"message": "Usuario actualizado exitosamente"}), 200
 
-
-@users_bp.route('/delete_user', methods=['DELETE'])
+@users_bp.route('/delete_user', methods=['POST'])
 def delete_user():
     data = request.json
-    user_id = data.get('id')  # Se obtiene el id del usuario
+    user_id = data.get('id')
 
     user = User.query.filter_by(id=user_id).first()
 
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
-    # Eliminar el usuario
     db.session.delete(user)
     db.session.commit()
 
     return jsonify({"message": "Usuario eliminado exitosamente"}), 200
+
 
 # Ruta para iniciar sesión
 @users_bp.route('/login', methods=['POST'])
