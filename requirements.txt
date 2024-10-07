@@ -4,3 +4,4 @@ Flask-CORS
 pymysql
 bcrypt
 python-dotenv
+flask-paginate
