@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, send_file
-from models.invoice_model import Invoices, db
+from ..models.invoice_model import Invoices, db
 from sqlalchemy import and_, or_, func
 from datetime import datetime, timedelta
 import io
@@ -67,20 +67,26 @@ def monitor_facturas():
         # Ordenar por fecha de emisión en orden descendente
         query = query.order_by(Invoices.fecha_emision.desc())
 
-        # Paginación
+       # Paginación
         page = request.args.get(get_page_parameter(), type=int, default=1)
         per_page = 15
-        total = query.count()
-        invoices = query.paginate(page, per_page, False).items
+
+        # Cambia esta línea
+        invoices_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Obtén los items de la página actual
+        invoices = invoices_pagination.items
 
         return jsonify({
             'invoices': [invoice.to_dict() for invoice in invoices],
             'pagination': {
-                'page': page,
-                'total': total,
-                'per_page': per_page
+                'page': invoices_pagination.page,
+                'total': invoices_pagination.total,
+                'per_page': invoices_pagination.per_page,
+                'pages': invoices_pagination.pages
             }
         }), 200
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
