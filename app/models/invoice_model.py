@@ -1,7 +1,7 @@
 from . import db
 
 class Invoices(db.Model):
-    __tablename__ = 'recepcion_facturas'
+    __tablename__ = 'facturas'
 
     id = db.Column(db.Integer, primary_key=True)
     nom_empresa = db.Column(db.String(20))
