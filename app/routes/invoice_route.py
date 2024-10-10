@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, send_file
-from models.invoice_model import Invoices, db
+from ..models.invoice_model import Invoices, db
 from sqlalchemy import and_, or_, func
 from datetime import datetime, timedelta
 import io
@@ -18,9 +18,17 @@ def monitor_facturas():
         search_query = request.args.get('query', '')
         fecha_inicio_str = request.args.get('startDate', '')
         fecha_fin_str = request.args.get('endDate', '')
-        emisor = request.args.get('nit', '')
+        emisor = request.args.get('nit', '')  # 'emisor' corresponde a 'nit'
         tipo_dte = request.args.get('tipoDte', '')
         estado_facturas = request.args.get('estado', '')
+
+        # Filtros avanzados
+        nrcEmisor = request.args.get('nrcEmisor', '')
+        nitEmisor = request.args.get('nitEmisor', '')
+        numeroControl = request.args.get('numeroControl', '')
+        codigoGeneracion = request.args.get('codigoGeneracion', '')
+        selloRecepcion = request.args.get('selloRecepcion', '')
+        tipoDocumento = request.args.get('tipoDte', '')  # Asumiendo que 'tipoDocumento' se mapea a 'tipoDte'
 
         # Crear consulta base
         query = Invoices.query
@@ -31,12 +39,31 @@ def monitor_facturas():
 
         if emisor:
             query = query.filter(Invoices.nit_emisor.like(f"%{emisor}%"))
-        
+
         if tipo_dte:
             query = query.filter(Invoices.tipo_dte.like(f"%{tipo_dte}%"))
 
         if estado_facturas:
             query = query.filter(Invoices.procesada == estado_facturas)
+
+        # Aplicar filtros avanzados
+        if nrcEmisor:
+            query = query.filter(Invoices.nrc_emisor.like(f"%{nrcEmisor}%"))
+
+        if nitEmisor:
+            query = query.filter(Invoices.nit_emisor.like(f"%{nitEmisor}%"))
+
+        if numeroControl:
+            query = query.filter(Invoices.num_control.like(f"%{numeroControl}%"))
+
+        if codigoGeneracion:
+            query = query.filter(Invoices.cod_gen.like(f"%{codigoGeneracion}%"))
+
+        if selloRecepcion:
+            query = query.filter(Invoices.sello_recepcion.like(f"%{selloRecepcion}%"))
+
+        if tipoDocumento:
+            query = query.filter(Invoices.tipo_dte.like(f"%{tipoDocumento}%"))
 
         if search_query:
             search_term = f"%{search_query}%"
@@ -52,12 +79,12 @@ def monitor_facturas():
 
         # Manejo de fechas
         if fecha_inicio_str:
-            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() + timedelta(days=1)
+            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
         else:
             fecha_inicio = None
 
         if fecha_fin_str:
-            fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() + timedelta(days=1)
+            fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
         else:
             fecha_fin = None
 
@@ -70,17 +97,22 @@ def monitor_facturas():
         # Paginación
         page = request.args.get(get_page_parameter(), type=int, default=1)
         per_page = 15
-        total = query.count()
-        invoices = query.paginate(page, per_page, False).items
+
+        invoices_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Obtén los items de la página actual
+        invoices = invoices_pagination.items
 
         return jsonify({
             'invoices': [invoice.to_dict() for invoice in invoices],
             'pagination': {
-                'page': page,
-                'total': total,
-                'per_page': per_page
+                'page': invoices_pagination.page,
+                'total': invoices_pagination.total,
+                'per_page': invoices_pagination.per_page,
+                'pages': invoices_pagination.pages
             }
         }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
