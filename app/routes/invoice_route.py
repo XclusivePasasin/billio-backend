@@ -3,9 +3,10 @@ from ..models.invoice_model import Invoices, db
 from sqlalchemy import and_, or_, func
 from datetime import datetime, timedelta
 import io
-import zipfile
 import json
 from flask_paginate import Pagination, get_page_parameter
+from io import BytesIO
+import os
 
 facturas_bp = Blueprint('facturas_bp', __name__)
 
@@ -135,8 +136,8 @@ def download_dtes():
         return jsonify({"error": "Por favor, seleccione un rango de fechas válido."}), 400
 
     # Convertir las fechas de string a objetos datetime.date
-    fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() + timedelta(days=1)
-    fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() + timedelta(days=1)
+    fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+    fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
 
     # Filtrar por fechas
     invoices = Invoices.query.filter(
@@ -146,14 +147,18 @@ def download_dtes():
     if not invoices:
         return jsonify({"error": "No se encontraron DTEs para el rango de fechas seleccionados."}), 404
 
-    memory_file = io.BytesIO()
-    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for invoice in invoices:
-            dte_json = json.dumps(invoice.dte, ensure_ascii=False, indent=2).encode('utf-8')
-            zf.writestr(f'{invoice.cod_gen}.json', dte_json)
+    # Crear un BytesIO para almacenar los archivos JSON
+    memory_file = BytesIO()
+    
+    # Añadir los archivos JSON al BytesIO
+    for invoice in invoices:
+        dte_json = json.dumps(invoice.dte, ensure_ascii=False, indent=2).encode('utf-8')
+        memory_file.write(dte_json + b'\n')  # Escribe cada JSON en una nueva línea
 
-    memory_file.seek(0)
-    return send_file(memory_file, download_name='dtes.zip', as_attachment=True)
+    memory_file.seek(0)  # Mover el puntero al inicio del archivo
+
+    # Devolver los archivos JSON como un archivo de texto
+    return send_file(memory_file, as_attachment=True, download_name='dtes.json', mimetype='application/json')
 
 # Actualizar facturas (sin autenticación)
 @facturas_bp.route('/actualizar-facturas', methods=['POST'])
