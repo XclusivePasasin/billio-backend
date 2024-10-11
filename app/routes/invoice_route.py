@@ -125,35 +125,61 @@ def view_dte(cod_gen):
     else:
         return jsonify({"error": "DTE not found"}), 404
 
-# Descargar DTES
 @facturas_bp.route('/downloads-dtes', methods=["GET"])
 def download_dtes():
+    # Obtener las fechas de inicio y fin desde los parámetros de la solicitud
     fecha_inicio_str = request.args.get('startDate')
     fecha_fin_str = request.args.get('endDate')
 
+    # Validar que se hayan proporcionado ambas fechas
     if not fecha_inicio_str or not fecha_fin_str:
         return jsonify({"error": "Por favor, seleccione un rango de fechas válido."}), 400
 
     # Convertir las fechas de string a objetos datetime.date
-    fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() + timedelta(days=1)
-    fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() + timedelta(days=1)
+    try:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+        fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"error": "Formato de fecha no válido. Use YYYY-MM-DD."}), 400
 
-    # Filtrar por fechas
+    # Validar que la fecha de inicio no sea mayor a la fecha de fin
+    if fecha_inicio > fecha_fin:
+        return jsonify({"error": "La fecha de inicio no puede ser mayor que la fecha de fin."}), 400
+
+    # Filtrar facturas por el rango de fechas
     invoices = Invoices.query.filter(
         Invoices.fecha_emision.between(fecha_inicio, fecha_fin)
     ).all()
+    
+    # Verificar contenido de las facturas
+    for invoice in invoices:
+        print(f"Factura {invoice.cod_gen} con fecha {invoice.fecha_emision}")
 
+    # Log para revisar cuántas facturas se están encontrando
+    print(f"Facturas encontradas: {len(invoices)}")
+ 
+    # Verificar si hay facturas en el rango de fechas seleccionado
     if not invoices:
         return jsonify({"error": "No se encontraron DTEs para el rango de fechas seleccionados."}), 404
 
+    # Limitar la cantidad de archivos si lo deseas (por ejemplo, solo dos facturas)
+    if len(invoices) > 2:
+        return jsonify({"error": "Se encontró más de la cantidad esperada de facturas. Ajusta tu rango de fechas."}), 400
+
+    # Crear un archivo en memoria para almacenar los DTEs
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for invoice in invoices:
+            # Convertir el DTE a JSON y escribirlo en el archivo ZIP
             dte_json = json.dumps(invoice.dte, ensure_ascii=False, indent=2).encode('utf-8')
             zf.writestr(f'{invoice.cod_gen}.json', dte_json)
 
+    # Establecer la posición del archivo en memoria al inicio
     memory_file.seek(0)
+
+    # Devolver el archivo ZIP como descarga
     return send_file(memory_file, download_name='dtes.zip', as_attachment=True)
+
 
 # Actualizar facturas (sin autenticación)
 @facturas_bp.route('/actualizar-facturas', methods=['POST'])
