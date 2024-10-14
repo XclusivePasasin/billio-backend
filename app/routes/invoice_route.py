@@ -162,10 +162,6 @@ def download_dtes():
     if not invoices:
         return jsonify({"error": "No se encontraron DTEs para el rango de fechas seleccionados."}), 404
 
-    # Limitar la cantidad de archivos si lo deseas (por ejemplo, solo dos facturas)
-    if len(invoices) > 2:
-        return jsonify({"error": "Se encontró más de la cantidad esperada de facturas. Ajusta tu rango de fechas."}), 400
-
     # Crear un archivo en memoria para almacenar los DTEs
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
