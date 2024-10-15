@@ -18,9 +18,9 @@ def monitor_facturas():
         search_query = request.args.get('query', '')
         fecha_inicio_str = request.args.get('startDate', '')
         fecha_fin_str = request.args.get('endDate', '')
-        emisor = request.args.get('nit', '')  # 'emisor' corresponde a 'nit'
+        emisor = request.args.get('nit', '')
         tipo_dte = request.args.get('tipoDte', '')
-        estado_facturas = request.args.get('estado', '')
+        estado_facturas = request.args.get('estado')  
 
         # Filtros avanzados
         nrcEmisor = request.args.get('nrcEmisor', '')
@@ -28,7 +28,7 @@ def monitor_facturas():
         numeroControl = request.args.get('numeroControl', '')
         codigoGeneracion = request.args.get('codigoGeneracion', '')
         selloRecepcion = request.args.get('selloRecepcion', '')
-        tipoDocumento = request.args.get('tipoDte', '')  # Asumiendo que 'tipoDocumento' se mapea a 'tipoDte'
+        tipoDocumento = request.args.get('tipoDte', '')
 
         # Crear consulta base
         query = Invoices.query
@@ -43,8 +43,17 @@ def monitor_facturas():
         if tipo_dte:
             query = query.filter(Invoices.tipo_dte.like(f"%{tipo_dte}%"))
 
-        if estado_facturas:
+        # Si se recibe filtro de estado, lo aplica; si no, solo muestra facturas no procesadas (procesada == 0)
+        if estado_facturas == '0' or estado_facturas == '1':
             query = query.filter(Invoices.procesada == estado_facturas)
+        elif estado_facturas == '2':
+            # Mostrar tanto las facturas procesadas (1) como las no procesadas (0)
+            query = query.filter(or_(Invoices.procesada == '0', Invoices.procesada == '1'))
+        else:
+            # Si no se recibe filtro válido, mostrar solo las no procesadas (0)
+            query = query.filter(Invoices.procesada == '0')
+
+        
 
         # Aplicar filtros avanzados
         if nrcEmisor:
@@ -91,8 +100,9 @@ def monitor_facturas():
         if fecha_inicio and fecha_fin:
             query = query.filter(Invoices.fecha_emision.between(fecha_inicio, fecha_fin))
 
-        # Ordenar por fecha de emisión en orden descendente
-        query = query.order_by(Invoices.fecha_emision.desc())
+        # Ordenar por fecha de emisión en orden ascendente (más antiguas primero)
+        query = query.order_by(Invoices.fecha_emision.asc())
+
 
         # Paginación
         page = request.args.get(get_page_parameter(), type=int, default=1)
@@ -115,6 +125,7 @@ def monitor_facturas():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # Ver DTE por código generado
 @facturas_bp.route("/dte/<cod_gen>", methods=["GET"])
