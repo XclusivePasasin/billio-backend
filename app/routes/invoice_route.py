@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, abort
 from ..models.invoice_model import Invoices, db
 from sqlalchemy import and_, or_, func
 from datetime import datetime, timedelta
@@ -6,6 +6,7 @@ import io
 import zipfile
 import json
 from flask_paginate import Pagination, get_page_parameter
+import os
 
 facturas_bp = Blueprint('facturas_bp', __name__)
 
@@ -127,6 +128,34 @@ def monitor_facturas():
         return jsonify({"error": str(e)}), 500
 
 
+    
+# Variable para almacenar la ruta de los PDFs (puedes cargarla de la base de datos al inicio)
+pdf_directory = r"D:/Billio-frontend/facturas"
+
+@facturas_bp.route("/configurar/ruta-pdf", methods=["POST"])
+def configurar_ruta_pdf():
+    global pdf_directory
+    nueva_ruta = request.json.get("nueva_ruta")
+    
+    if os.path.exists(nueva_ruta) and os.path.isdir(nueva_ruta):
+        pdf_directory = nueva_ruta
+        return jsonify({"mensaje": "Ruta actualizada exitosamente"}), 200
+    else:
+        return jsonify({"error": "La ruta no es válida o no existe"}), 400
+
+# Ver PDF por código generado
+@facturas_bp.route("/pdf/<cod_gen>.pdf", methods=["GET"])
+def view_factura_pdf(cod_gen):
+    pdf_filename = f"{cod_gen}.pdf"
+    # Normalizamos la ruta para evitar problemas de compatibilidad
+    pdf_path = os.path.normpath(os.path.join(pdf_directory, pdf_filename))
+    
+    if os.path.exists(pdf_path):
+        return send_file(pdf_path, as_attachment=False)
+    else:
+        print(f"Archivo no encontrado: {pdf_path}")
+        return abort(404, description="Archivo PDF no encontrado")
+
 # Ver DTE por código generado
 @facturas_bp.route("/dte/<cod_gen>", methods=["GET"])
 def view_dte(cod_gen):
@@ -135,7 +164,7 @@ def view_dte(cod_gen):
         return jsonify({"dte": invoice.dte})
     else:
         return jsonify({"error": "DTE not found"}), 404
-
+    
 @facturas_bp.route('/downloads-dtes', methods=["GET"])
 def download_dtes():
     # Obtener las fechas de inicio y fin desde los parámetros de la solicitud
@@ -168,7 +197,7 @@ def download_dtes():
 
     # Log para revisar cuántas facturas se están encontrando
     print(f"Facturas encontradas: {len(invoices)}")
- 
+
     # Verificar si hay facturas en el rango de fechas seleccionado
     if not invoices:
         return jsonify({"error": "No se encontraron DTEs para el rango de fechas seleccionados."}), 404
