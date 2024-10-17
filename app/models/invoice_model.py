@@ -26,6 +26,10 @@ class Invoices(db.Model):
     estado = db.Column(db.String(1), default='A')
     monto = db.Column(db.Numeric(10, 2), nullable=True)
 
+    # Nuevos campos agregados
+    subtotal = db.Column(db.Numeric(10, 2), nullable=True)
+    iva = db.Column(db.Numeric(10, 2), nullable=True)
+
     def __repr__(self):
         return f'<RecepcionFacturas {self.cod_gen}>'
 
@@ -52,5 +56,7 @@ class Invoices(db.Model):
             'fecha_emision': self.fecha_emision.strftime('%Y-%m-%d') if self.fecha_emision else None,
             'procesada': self.procesada,
             'estado': self.estado,
-            'monto': str(self.monto) if self.monto else None
+            'monto': str(self.monto) if self.monto else None,
+            'subtotal': str(self.subtotal) if self.subtotal else None,  
+            'iva': str(self.iva) if self.iva else None 
         }

@@ -56,7 +56,9 @@ def get_user_by_identifier():
                     "correo": user.correo,
                     "usuario": user.usuario,
                     "clave": user.clave,
-                    "estado": user.estado}
+                    "estado": user.estado,
+                    "tipo": user.tipo
+                }
             ]
         }), 200
     except Exception as e:
